@@ -78,10 +78,8 @@
 // PAR2023 - PARALLAX (NO_LIGHT)
 
 #if defined(__INTELLISENSE__)
-    // Enable macros as needed for coding (HLSL Tools for VS).
     #define PS
-    #define DIFFUSE
-    #define LIGHTS 3
+    #define NO_LIGHT
 #endif
 
 #if defined(AD)
@@ -130,7 +128,7 @@ struct VS_OUTPUT {
 #ifndef NO_LIGHT
     float4 lightDir : TEXCOORD1;
     #ifdef DIFFUSE
-    float4 lightAtt : TEXCOORD2;
+        float4 lightAtt : TEXCOORD2;
     #endif
     #ifdef SPECULAR
         float3 halfwayDir : TEXCOORD2;
@@ -324,13 +322,13 @@ struct PS_OUTPUT {
     #if !defined(NO_LIGHT)
         float4 AmbientColor : register(c1);
     #endif
-    sampler2D BaseMap : register(s0);
+sampler2D BaseMap : register(s0);
 #endif
 #if !defined(NO_LIGHT)
     #if !defined(DIFFUSE) && !defined(ONLY_SPECULAR)
         sampler2D NormalMap : register(s1);
     #else
-sampler2D NormalMap : register(s0);
+        sampler2D NormalMap : register(s0);
     #endif
 #endif
 #if !defined(ONLY_LIGHT) && !defined(ONLY_SPECULAR) && !defined(NO_LIGHT)
@@ -348,7 +346,7 @@ float4 EmittanceColor : register(c2);
 #endif
 #if LIGHTS > 1
     #ifdef DIFFUSE
-sampler2D AttenuationMap : register(s3);
+        sampler2D AttenuationMap : register(s3);
     #elif defined(ONLY_LIGHT)
         sampler2D AttenuationMap : register(s4);
     #else
@@ -368,10 +366,10 @@ sampler2D AttenuationMap : register(s3);
     #endif
 #endif
 #if !defined(NO_LIGHT)
-float4 PSLightColor[10] : register(c3);
+    float4 PSLightColor[10] : register(c3);
 #endif
 #ifndef OPT
-    float4 Toggles : register(c27);
+float4 Toggles : register(c27);
 #endif
 
 #define	uvtile(w)		(((w) * 0.04) - 0.02)
@@ -402,16 +400,14 @@ PS_OUTPUT main(PS_INPUT IN) {
     float2 offsetUV = getParallaxCoords(distance, IN.uv.xy, dx, dy, viewDir.xyz, HeightMap);
 
     #if !defined(DIFFUSE) && !defined(ONLY_SPECULAR)
-        float4 baseColor = tex2D(BaseMap, offsetUV.xy);
-    #else
-    float4 baseColor = float4(0, 0, 0, 1);
+    float4 baseColor = tex2D(BaseMap, offsetUV.xy);
     #endif
     
     // Vertex color.
     #ifndef NO_VERTEX_COLOR
         #ifndef OPT
             // Apply vertex color if toggled.
-            baseColor.xyz = (useVertexColor <= 0.0 ? baseColor.xyz : (baseColor.xyz * IN.vertexColor.rgb));
+    baseColor.xyz = (useVertexColor <= 0.0 ? baseColor.xyz : (baseColor.xyz * IN.vertexColor.rgb));
         #else
             baseColor.xyz = baseColor.xyz * IN.vertexColor.rgb;
         #endif
@@ -419,28 +415,28 @@ PS_OUTPUT main(PS_INPUT IN) {
     
     // Lighting.
     #ifdef NO_LIGHT
-        OUT.color = 1;
-        OUT.color.rgb = baseColor.rgb;
-        return OUT;
+    OUT.color = 1;
+    OUT.color.rgb = baseColor.rgb;
+    return OUT;
     #else
-    float4 normal = tex2D(NormalMap, offsetUV.xy);
-    normal.xyz = normalize(expand(normal.xyz));
+        float4 normal = tex2D(NormalMap, offsetUV.xy);
+        normal.xyz = normalize(expand(normal.xyz));
 
-    float NdotL = shades(normal.xyz, IN.lightDir.xyz);
+        float NdotL = shades(normal.xyz, IN.lightDir.xyz);
     #endif
     
     #if !defined(ONLY_SPECULAR) && !defined(NO_LIGHT)
-    float att1, att2, finalAtt;
-    float3 lighting = NdotL * PSLightColor[0].rgb;
+        float att1, att2, finalAtt;
+        float3 lighting = NdotL * PSLightColor[0].rgb;
     #else
-        float3 lighting = 0;
+    float3 lighting = 0;
     #endif
     
     #if defined(DIFFUSE)
-    att1 = tex2D(AttenuationMap, IN.lightAtt.xy).x;
-    att2 = tex2D(AttenuationMap, IN.lightAtt.zw).x;
-    finalAtt = saturate(1 - att1 - att2);
-    lighting *= finalAtt;
+        att1 = tex2D(AttenuationMap, IN.lightAtt.xy).x;
+        att2 = tex2D(AttenuationMap, IN.lightAtt.zw).x;
+        finalAtt = saturate(1 - att1 - att2);
+        lighting *= finalAtt;
     #endif
     
     // Shadows.
@@ -452,24 +448,24 @@ PS_OUTPUT main(PS_INPUT IN) {
     #endif
     
     #ifndef NO_LIGHT
-    shadowMultiplier *= getParallaxShadowMultipler(distance, offsetUV, dx, dy, IN.lightDir.xyz, HeightMap);
+        shadowMultiplier *= getParallaxShadowMultipler(distance, offsetUV, dx, dy, IN.lightDir.xyz, HeightMap);
     #endif
     
     lighting *= shadowMultiplier;
     
     // Other light sources.
     #if LIGHTS > 1
-    att1 = tex2D(AttenuationMap, IN.light2Att.xy).x;
-    att2 = tex2D(AttenuationMap, IN.light2Att.zw).x;
-    finalAtt = saturate(1 - att1 - att2);
-    lighting += (finalAtt * (shades(normal.xyz, normalize(IN.light2Dir.xyz)) * PSLightColor[1].rgb));
+        att1 = tex2D(AttenuationMap, IN.light2Att.xy).x;
+        att2 = tex2D(AttenuationMap, IN.light2Att.zw).x;
+        finalAtt = saturate(1 - att1 - att2);
+        lighting += (finalAtt * (shades(normal.xyz, normalize(IN.light2Dir.xyz)) * PSLightColor[1].rgb));
     #endif
     
     #if LIGHTS > 2
-    att1 = tex2D(AttenuationMap, IN.light3Att.xy).x;
-    att2 = tex2D(AttenuationMap, IN.light3Att.zw).x;
-    finalAtt = saturate((1 - att1) - att2);
-    lighting += (finalAtt * (shades(normal.xyz, normalize(IN.light3Dir.xyz)) * PSLightColor[2].rgb));
+        att1 = tex2D(AttenuationMap, IN.light3Att.xy).x;
+        att2 = tex2D(AttenuationMap, IN.light3Att.zw).x;
+        finalAtt = saturate((1 - att1) - att2);
+        lighting += (finalAtt * (shades(normal.xyz, normalize(IN.light3Dir.xyz)) * PSLightColor[2].rgb));
     #endif
     
     // Self emmitance.
@@ -483,13 +479,9 @@ PS_OUTPUT main(PS_INPUT IN) {
     #endif
     
     #ifdef ONLY_LIGHT
-    finalColor.a = baseColor.a;
-    finalColor.rgb = lighting.rgb;
-    #elif defined(ONLY_SPECULAR)
-        finalColor.a = weight(lighting.rgb);
-        finalColor.rgb = saturate(lighting.rgb);
+        finalColor.rgb = lighting.rgb;
     #else
-        finalColor.rgb = baseColor.rgb * max(lighting.rgb, 0);
+    finalColor.rgb = baseColor.rgb * max(lighting.rgb, 0);
     #endif
     
     // Specular component (for not specular only variants).
@@ -536,13 +528,24 @@ PS_OUTPUT main(PS_INPUT IN) {
     // Fog.
     #ifndef NO_FOG
         #ifndef OPT
-            finalColor.rgb = (useFog <= 0.0 ? finalColor.rgb : lerp(finalColor.rgb, IN.fogColor.rgb, IN.fogColor.a));
+    finalColor.rgb = (useFog <= 0.0 ? finalColor.rgb : lerp(finalColor.rgb, IN.fogColor.rgb, IN.fogColor.a));
         #else
             finalColor.rgb = lerp(finalColor.rgb, IN.fogColor.rgb, IN.fogColor.a);
         #endif
     #endif
     
-    OUT.color.rgba = finalColor.rgba;
+    OUT.color.rgb = finalColor.rgb;
+    
+    #if defined(DIFFUSE)
+        OUT.color.a = 1;
+    #elif defined(ONLY_SPECULAR)
+        OUT.color.rgb = saturate(OUT.color.rgb);
+        OUT.color.a = weight(finalColor.rgb);
+    #elif defined(ONLY_LIGHT)
+        OUT.color.a = baseColor.a;
+    #elif !defined(NO_LIGHT)
+        OUT.color.a = baseColor.a * AmbientColor.a;
+    #endif
 
     return OUT;
 };
