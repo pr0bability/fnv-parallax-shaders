@@ -251,8 +251,14 @@ VS_OUTPUT main(VS_INPUT IN) {
     #endif
     
     #ifndef NO_FOG
-        float fogStrength = 1 - saturate((FogParam.x - length(OUT.sPosition.xyz)) / FogParam.y);
-        fogStrength = log2(fogStrength);  // Unclear.
+        float3 fogPos = OUT.sPosition.xyz;
+    
+        #ifdef REVERSED_DEPTH
+            fogPos.z = OUT.sPosition.w - fogPos.z;
+        #endif
+    
+        float fogStrength = 1 - saturate((FogParam.x - length(fogPos)) / FogParam.y);
+        fogStrength = log2(fogStrength);
         OUT.fogColor.a = exp2(fogStrength * FogParam.z);
         OUT.fogColor.rgb = FogColor.rgb;
     #endif
