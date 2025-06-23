@@ -1,6 +1,7 @@
 #define	expand(v)	        (((v) - 0.5) / 0.5)  // from 0/1 to -1/1
 #define	compress(v)         (((v) * 0.5) + 0.5)  // from -1/1 to 0/1 
 #define	shades(n, l)        saturate(dot(n, l))
+#define	weight(v)           dot(v, 1)
 
 float4 asm_lit(float4 src) {
     float4 dest;
