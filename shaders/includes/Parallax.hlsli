@@ -1,3 +1,9 @@
+#if defined(TERRAIN) && !defined(MAX_STEPS)
+    #define MAX_STEPS 16
+    #define MAX_DISTANCE 2048
+#endif
+
+
 #ifdef TERRAIN
 // Complex Parallax Materials for Community Shaders
 // https://bartwronski.com/wp-content/uploads/2014/03/ac4_gdc.pdf
@@ -43,8 +49,8 @@ float2 getParallaxCoords(
 float2 getParallaxCoords(float distance, float2 coords, float2 dx, float2 dy, float3 viewDirTS, sampler2D heightMap) {
 #endif
     #ifdef TERRAIN
-        static const float maxSteps = 16.0f;
-        float maxDistance = 2048;
+        static const float maxSteps = MAX_STEPS;
+        float maxDistance = MAX_DISTANCE;
         float height = 0.1;
     #else
         static const float maxSteps = 16.0f;
